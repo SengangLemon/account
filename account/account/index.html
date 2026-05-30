@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>자산관리</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── 상단 헤더 (탭별로 교체) ── -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <span class="top-bar-title" id="top-title">홈</span>
+      </div>
+      <div class="top-bar-right">
+        <button class="icon-btn" id="add-btn" style="display:none" onclick="UI.openModalFromTab()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="icon-btn" onclick="App.resetAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── 탭 콘텐츠 영역 ── -->
+    <main class="main-content">
+
+      <!-- 대시보드 -->
+      <section id="tab-dashboard" class="tab-section active">
+
+        <!-- 순자산 히어로 카드 -->
+        <div class="hero-card">
+          <div class="hero-label">순자산</div>
+          <div class="hero-amount" id="net-worth">₩0</div>
+          <div class="hero-sub" id="net-worth-sub">데이터를 입력하면 자동 계산됩니다</div>
+          <div class="hero-date" id="last-updated"></div>
+        </div>
+
+        <!-- 자산 구성 4칸 그리드 -->
+        <div class="section-label">자산 현황</div>
+        <div class="stat-grid">
+          <div class="stat-card blue">
+            <span class="stat-icon">📈</span>
+            <span class="stat-name">주식</span>
+            <span class="stat-val" id="dash-stocks">₩0</span>
+          </div>
+          <div class="stat-card green">
+            <span class="stat-icon">🏦</span>
+            <span class="stat-name">예적금</span>
+            <span class="stat-val" id="dash-savings">₩0</span>
+          </div>
+          <div class="stat-card red">
+            <span class="stat-icon">💳</span>
+            <span class="stat-name">대출</span>
+            <span class="stat-val" id="dash-loans">₩0</span>
+          </div>
+          <div class="stat-card orange">
+            <span class="stat-icon">📅</span>
+            <span class="stat-name">월 이자</span>
+            <span class="stat-val" id="dash-interest">₩0</span>
+          </div>
+        </div>
+
+        <!-- 자산 배분 -->
+        <div class="section-label">자산 배분</div>
+        <div class="card">
+          <div class="alloc-bar-wrap">
+            <div class="allocation-bar" id="alloc-bar"></div>
+          </div>
+          <div class="allocation-legend" id="alloc-legend"></div>
+        </div>
+
+        <!-- 주식 손익 요약 -->
+        <div class="section-label">주식 손익</div>
+        <div class="card">
+          <div class="row-item">
+            <span class="row-label">총 매입금액</span>
+            <span class="row-val" id="dash-total-buy">₩0</span>
+          </div>
+          <div class="row-item">
+            <span class="row-label">총 평가금액</span>
+            <span class="row-val" id="dash-total-eval">₩0</span>
+          </div>
+          <div class="divider"></div>
+          <div class="row-item">
+            <span class="row-label bold">평가 손익</span>
+            <span class="row-val bold" id="dash-total-pnl">₩0</span>
+          </div>
+          <div class="row-item">
+            <span class="row-label bold">수익률</span>
+            <span class="row-val bold" id="dash-total-rate">0.00%</span>
+          </div>
+        </div>
+
+        <div style="height:100px"></div>
+      </section>
+
+      <!-- 주식 탭 -->
+      <section id="tab-stocks" class="tab-section">
+        <!-- 요약 카드 -->
+        <div class="summary-strip">
+          <div class="strip-item">
+            <span class="strip-label">총 평가액</span>
+            <span class="strip-val" id="stock-total-eval">₩0</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-label">총 손익</span>
+            <span class="strip-val" id="stock-total-pnl">₩0</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-label">수익률</span>
+            <span class="strip-val" id="stock-total-rate">0.00%</span>
+          </div>
+        </div>
+        <div class="card-list" id="stock-list"></div>
+        <div style="height:100px"></div>
+      </section>
+
+      <!-- 예적금 탭 -->
+      <section id="tab-savings" class="tab-section">
+        <div class="summary-strip">
+          <div class="strip-item">
+            <span class="strip-label">총 원금</span>
+            <span class="strip-val" id="saving-total-principal">₩0</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-label">예상 이자</span>
+            <span class="strip-val" id="saving-total-interest">₩0</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-label">만기 예상액</span>
+            <span class="strip-val" id="saving-total-maturity">₩0</span>
+          </div>
+        </div>
+        <div class="card-list" id="saving-list"></div>
+        <div style="height:100px"></div>
+      </section>
+
+      <!-- 대출 탭 -->
+      <section id="tab-loans" class="tab-section">
+        <div class="summary-strip">
+          <div class="strip-item">
+            <span class="strip-label">총 원금</span>
+            <span class="strip-val" id="loan-total-principal">₩0</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-label">월 이자</span>
+            <span class="strip-val" id="loan-total-monthly">₩0</span>
+          </div>
+          <div class="strip-item">
+            <span class="strip-label">연 이자</span>
+            <span class="strip-val" id="loan-total-annual">₩0</span>
+          </div>
+        </div>
+        <div class="card-list" id="loan-list"></div>
+        <div style="height:100px"></div>
+      </section>
+
+    </main>
+
+    <!-- ── 하단 탭 바 ── -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>홈</span>
+      </button>
+      <button class="nav-btn" data-tab="stocks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        <span>주식</span>
+      </button>
+      <button class="nav-btn" data-tab="savings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></svg>
+        <span>예적금</span>
+      </button>
+      <button class="nav-btn" data-tab="loans">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 12h.01"/></svg>
+        <span>대출</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ── 바텀 시트 모달 ── -->
+  <div class="sheet-overlay" id="modal-overlay" onclick="UI.closeModal()">
+    <div class="sheet" id="modal" onclick="event.stopPropagation()">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="modal-title">추가</h2>
+        <button class="sheet-close" onclick="UI.closeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body" id="modal-body"></div>
+      <div class="sheet-footer">
+        <button class="btn-save" id="modal-save-btn" onclick="UI.saveModal()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
