@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>자산관리</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar Nav -->
+    <nav class="sidebar">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">자산관리</span>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-tab="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span>대시보드</span>
+        </li>
+        <li class="nav-item" data-tab="stocks">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <span>주식</span>
+        </li>
+        <li class="nav-item" data-tab="savings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+          <span>예적금</span>
+        </li>
+        <li class="nav-item" data-tab="loans">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>대출</span>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <button class="btn-reset" onclick="App.resetAll()">초기화</button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Dashboard Tab -->
+      <section id="tab-dashboard" class="tab-section active">
+        <div class="page-header">
+          <h1>총 자산 현황</h1>
+          <p class="subtitle" id="last-updated"></p>
+        </div>
+        <div class="dashboard-hero">
+          <div class="hero-label">순자산 (Net Worth)</div>
+          <div class="hero-amount" id="net-worth">₩0</div>
+          <div class="hero-sub" id="net-worth-sub"></div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card positive">
+            <div class="summary-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">주식 평가액</span>
+              <span class="summary-value" id="dash-stocks">₩0</span>
+            </div>
+          </div>
+          <div class="summary-card positive">
+            <div class="summary-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">예적금 총액</span>
+              <span class="summary-value" id="dash-savings">₩0</span>
+            </div>
+          </div>
+          <div class="summary-card negative">
+            <div class="summary-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 12h.01"/></svg>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">대출 원금</span>
+              <span class="summary-value" id="dash-loans">₩0</span>
+            </div>
+          </div>
+          <div class="summary-card neutral">
+            <div class="summary-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">월 이자 지출</span>
+              <span class="summary-value" id="dash-interest">₩0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Asset Allocation Chart -->
+        <div class="section-title">자산 구성</div>
+        <div class="allocation-card">
+          <div class="allocation-bar-wrap">
+            <div class="allocation-bar" id="alloc-bar"></div>
+          </div>
+          <div class="allocation-legend" id="alloc-legend"></div>
+        </div>
+
+        <!-- Stock P&L Summary on Dashboard -->
+        <div class="section-title" style="margin-top:2rem">주식 수익 현황</div>
+        <div class="pnl-summary-card">
+          <div class="pnl-row">
+            <span class="pnl-label">총 매입 금액</span>
+            <span class="pnl-val" id="dash-total-buy">₩0</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-label">총 평가 금액</span>
+            <span class="pnl-val" id="dash-total-eval">₩0</span>
+          </div>
+          <div class="pnl-divider"></div>
+          <div class="pnl-row big">
+            <span class="pnl-label">평가 손익</span>
+            <span class="pnl-val" id="dash-total-pnl">₩0</span>
+          </div>
+          <div class="pnl-row big">
+            <span class="pnl-label">수익률</span>
+            <span class="pnl-val" id="dash-total-rate">0.00%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stocks Tab -->
+      <section id="tab-stocks" class="tab-section">
+        <div class="page-header">
+          <h1>주식 자산</h1>
+          <button class="btn-primary" onclick="UI.openModal('stock')">+ 종목 추가</button>
+        </div>
+        <div class="stocks-summary-bar">
+          <div class="ssb-item"><span class="ssb-label">총 평가액</span><span class="ssb-val" id="stock-total-eval">₩0</span></div>
+          <div class="ssb-divider"></div>
+          <div class="ssb-item"><span class="ssb-label">총 손익</span><span class="ssb-val" id="stock-total-pnl">₩0</span></div>
+          <div class="ssb-divider"></div>
+          <div class="ssb-item"><span class="ssb-label">수익률</span><span class="ssb-val" id="stock-total-rate">0.00%</span></div>
+        </div>
+        <div class="card-list" id="stock-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--border)" stroke-width="2"/><polyline points="20 38 28 28 36 34 46 22" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <p>아직 등록된 종목이 없습니다</p>
+            <button class="btn-primary" onclick="UI.openModal('stock')">첫 종목 추가하기</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Savings Tab -->
+      <section id="tab-savings" class="tab-section">
+        <div class="page-header">
+          <h1>예적금</h1>
+          <button class="btn-primary" onclick="UI.openModal('saving')">+ 계좌 추가</button>
+        </div>
+        <div class="stocks-summary-bar">
+          <div class="ssb-item"><span class="ssb-label">총 원금</span><span class="ssb-val" id="saving-total-principal">₩0</span></div>
+          <div class="ssb-divider"></div>
+          <div class="ssb-item"><span class="ssb-label">예상 이자 합계</span><span class="ssb-val" id="saving-total-interest">₩0</span></div>
+          <div class="ssb-divider"></div>
+          <div class="ssb-item"><span class="ssb-label">만기 수령 예상액</span><span class="ssb-val" id="saving-total-maturity">₩0</span></div>
+        </div>
+        <div class="card-list" id="saving-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--border)" stroke-width="2"/><path d="M32 20v4M32 40v4M22 32h4M38 32h4" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <p>아직 등록된 예적금 계좌가 없습니다</p>
+            <button class="btn-primary" onclick="UI.openModal('saving')">첫 계좌 추가하기</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Loans Tab -->
+      <section id="tab-loans" class="tab-section">
+        <div class="page-header">
+          <h1>대출 관리</h1>
+          <button class="btn-primary" onclick="UI.openModal('loan')">+ 대출 추가</button>
+        </div>
+        <div class="stocks-summary-bar">
+          <div class="ssb-item"><span class="ssb-label">총 대출 원금</span><span class="ssb-val" id="loan-total-principal">₩0</span></div>
+          <div class="ssb-divider"></div>
+          <div class="ssb-item"><span class="ssb-label">월 이자 합계</span><span class="ssb-val" id="loan-total-monthly">₩0</span></div>
+          <div class="ssb-divider"></div>
+          <div class="ssb-item"><span class="ssb-label">연 이자 합계</span><span class="ssb-val" id="loan-total-annual">₩0</span></div>
+        </div>
+        <div class="card-list" id="loan-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--border)" stroke-width="2"/><rect x="20" y="26" width="24" height="16" rx="2" stroke="var(--accent)" stroke-width="2.5"/><path d="M26 26v-4a6 6 0 0112 0v4" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <p>등록된 대출이 없습니다</p>
+            <button class="btn-primary" onclick="UI.openModal('loan')">대출 추가하기</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modal-overlay" onclick="UI.closeModal()">
+    <div class="modal" id="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-title">항목 추가</h2>
+        <button class="modal-close" onclick="UI.closeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="UI.closeModal()">취소</button>
+        <button class="btn-primary" id="modal-save-btn" onclick="UI.saveModal()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
