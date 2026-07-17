@@ -26,6 +26,12 @@
   --orange-bg:     #fff5e6;
   --purple:        #af52de;
   --purple-bg:     #f5ecfc;
+  --teal:          #00c7be;
+  --teal-bg:       #e0faf8;
+  --pink:          #ff2d55;
+  --pink-bg:       #ffe8ed;
+  --gray:          #8e8e93;
+  --gray-bg:       #ececee;
   --nav-h:         60px;
   --top-h:         52px;
   --radius:        16px;
@@ -668,3 +674,126 @@ body {
 .form-select:focus { border-color: var(--accent); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .form-hint { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+/* ─── Section label row (label + inline action) ─── */
+.section-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.section-label-row .section-label { margin-bottom: 0; }
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.btn-text:active { opacity: .6; }
+
+/* ─── Category chips ─── */
+.cat-chip {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cat-blue   { background: var(--accent-bg); color: var(--accent); }
+.cat-orange { background: var(--orange-bg); color: var(--orange); }
+.cat-purple { background: var(--purple-bg); color: var(--purple); }
+.cat-teal   { background: var(--teal-bg);   color: var(--teal); }
+.cat-pink   { background: var(--pink-bg);   color: var(--pink); }
+.cat-green  { background: var(--green-bg);  color: var(--green); }
+.cat-gray   { background: var(--gray-bg);   color: var(--gray); }
+
+.paid-chip {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+/* ─── Fixed expense card ─── */
+.fixed-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 14px;
+  box-shadow: 0 1px 0 var(--border);
+}
+.fx-day {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--text-2);
+}
+.fx-main { flex: 1; min-width: 0; }
+.fx-top { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
+.fx-name {
+  font-size: 14px; font-weight: 600; color: var(--text-1); margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fx-amount { font-size: 15px; font-weight: 700; color: var(--text-1); }
+.fx-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+.btn-record {
+  padding: 7px 13px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+.btn-record:active { opacity: .85; }
+.fx-icon-row { display: flex; gap: 6px; justify-content: flex-end; }
+.btn-icon.sm { width: 26px; height: 26px; border-radius: 7px; }
+.btn-icon.sm svg { width: 12px; height: 12px; }
+
+/* ─── Expense log row ─── */
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow: 0 1px 0 var(--border);
+  cursor: pointer;
+}
+.log-cat { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-blue   { background: var(--accent); }
+.dot-orange { background: var(--orange); }
+.dot-purple { background: var(--purple); }
+.dot-teal   { background: var(--teal); }
+.dot-pink   { background: var(--pink); }
+.dot-green  { background: var(--green); }
+.dot-gray   { background: var(--gray); }
+.log-info { flex: 1; min-width: 0; }
+.log-name {
+  font-size: 13.5px; font-weight: 600; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.log-date { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.log-amount { font-size: 14px; font-weight: 700; color: var(--text-1); flex-shrink: 0; white-space: nowrap; }
