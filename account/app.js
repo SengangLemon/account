@@ -7,8 +7,8 @@
    1. STATE MODULE
    ───────────────────────────────────────────────────── */
 const State = (() => {
-  const KEYS = { stocks: 'ba_stocks', savings: 'ba_savings', loans: 'ba_loans' };
-  let data = { stocks: [], savings: [], loans: [] };
+  const KEYS = { stocks: 'ba_stocks', savings: 'ba_savings', loans: 'ba_loans', fixed: 'ba_fixed', logs: 'ba_logs' };
+  let data = { stocks: [], savings: [], loans: [], fixed: [], logs: [] };
 
   function load() {
     for (const k of Object.keys(KEYS)) {
@@ -25,6 +25,8 @@ const State = (() => {
   function addStock(item)  { data.stocks.push({ ...item, id: uid() }); save('stocks'); }
   function addSaving(item) { data.savings.push({ ...item, id: uid() }); save('savings'); }
   function addLoan(item)   { data.loans.push({ ...item, id: uid() }); save('loans'); }
+  function addFixed(item)  { data.fixed.push({ ...item, id: uid() }); save('fixed'); }
+  function addLog(item)    { data.logs.push({ ...item, id: uid(), ts: Date.now() }); save('logs'); }
 
   function updateStock(id, patch) {
     const idx = data.stocks.findIndex(s => s.id === id);
@@ -38,19 +40,35 @@ const State = (() => {
     const idx = data.loans.findIndex(l => l.id === id);
     if (idx > -1) { data.loans[idx] = { ...data.loans[idx], ...patch }; save('loans'); }
   }
+  function updateFixed(id, patch) {
+    const idx = data.fixed.findIndex(f => f.id === id);
+    if (idx > -1) { data.fixed[idx] = { ...data.fixed[idx], ...patch }; save('fixed'); }
+  }
+  function updateLog(id, patch) {
+    const idx = data.logs.findIndex(l => l.id === id);
+    if (idx > -1) { data.logs[idx] = { ...data.logs[idx], ...patch }; save('logs'); }
+  }
 
   function deleteStock(id)  { data.stocks  = data.stocks.filter(s => s.id !== id); save('stocks'); }
   function deleteSaving(id) { data.savings = data.savings.filter(s => s.id !== id); save('savings'); }
   function deleteLoan(id)   { data.loans   = data.loans.filter(l => l.id !== id); save('loans'); }
+  function deleteFixed(id)  { data.fixed   = data.fixed.filter(f => f.id !== id); save('fixed'); }
+  function deleteLog(id)    { data.logs    = data.logs.filter(l => l.id !== id); save('logs'); }
 
   function reset() {
-    data = { stocks: [], savings: [], loans: [] };
+    data = { stocks: [], savings: [], loans: [], fixed: [], logs: [] };
     Object.keys(KEYS).forEach(k => localStorage.removeItem(KEYS[k]));
   }
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
-  return { load, getAll, addStock, addSaving, addLoan, updateStock, updateSaving, updateLoan, deleteStock, deleteSaving, deleteLoan, reset };
+  return {
+    load, getAll,
+    addStock, addSaving, addLoan, addFixed, addLog,
+    updateStock, updateSaving, updateLoan, updateFixed, updateLog,
+    deleteStock, deleteSaving, deleteLoan, deleteFixed, deleteLog,
+    reset
+  };
 })();
 
 
@@ -117,7 +135,34 @@ const Compute = (() => {
     return { total, netWorth: total - loanP, stocksEval: totalEval, savingsTotal: savP, loansTotal: loanP, monthlyInterest: totalMonthly };
   }
 
-  return { stockItem, stockSummary, savingItem, savingSummary, loanItem, loanSummary, netWorth };
+  function currentMonthKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  function monthKeyOf(dateStr) { return (dateStr || '').slice(0, 7); }
+
+  function thisMonthLogs(logs) {
+    const mk = currentMonthKey();
+    return logs.filter(l => monthKeyOf(l.date) === mk);
+  }
+  function totalSpent(logs) {
+    return logs.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  }
+  function fixedTotal(fixed) {
+    return fixed.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  }
+  function isPaidThisMonth(fixedId, logs) {
+    const mk = currentMonthKey();
+    return logs.some(l => l.fixedId === fixedId && monthKeyOf(l.date) === mk);
+  }
+  function unpaidFixedCount(fixed, logs) {
+    return fixed.filter(f => !isPaidThisMonth(f.id, logs)).length;
+  }
+
+  return {
+    stockItem, stockSummary, savingItem, savingSummary, loanItem, loanSummary, netWorth,
+    thisMonthLogs, totalSpent, fixedTotal, isPaidThisMonth, unpaidFixedCount
+  };
 })();
 
 
@@ -133,7 +178,29 @@ const Format = (() => {
     const d = new Date();
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 기준`;
   };
-  return { krw, pct, num, colorClass, today };
+  const todayDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  return { krw, pct, num, colorClass, today, todayDate };
+})();
+
+
+/* ─────────────────────────────────────────────────────
+   3-b. CATEGORY MODULE
+   ───────────────────────────────────────────────────── */
+const Cat = (() => {
+  const list = [
+    { id: 'housing',    label: '주거/월세',  cls: 'blue'   },
+    { id: 'utility',    label: '공과금',     cls: 'orange' },
+    { id: 'sub',        label: '구독',       cls: 'purple' },
+    { id: 'insurance',  label: '보험',       cls: 'teal'   },
+    { id: 'transport',  label: '교통',       cls: 'pink'   },
+    { id: 'food',       label: '식비/생활',  cls: 'green'  },
+    { id: 'etc',        label: '기타',       cls: 'gray'   },
+  ];
+  function info(id) { return list.find(c => c.id === id) || list[list.length - 1]; }
+  return { list, info };
 })();
 
 
@@ -144,7 +211,7 @@ const UI = (() => {
   let _modalType = null;
   let _editId    = null;
 
-  const TAB_TITLES = { dashboard: '내 자산', stocks: '주식', savings: '예적금', loans: '대출' };
+  const TAB_TITLES = { dashboard: '내 자산', stocks: '주식', savings: '예적금', loans: '대출', expenses: '지출' };
 
   /* ── 탭 전환 ── */
   function switchTab(tab) {
@@ -160,7 +227,7 @@ const UI = (() => {
   /* ── 현재 탭 기반 모달 열기 (+ 버튼) ── */
   function openModalFromTab() {
     const tab = document.getElementById('add-btn').dataset.currentTab;
-    const typeMap = { stocks: 'stock', savings: 'saving', loans: 'loan' };
+    const typeMap = { stocks: 'stock', savings: 'saving', loans: 'loan', expenses: 'fixed' };
     openModal(typeMap[tab] || 'stock');
   }
 
@@ -349,16 +416,83 @@ const UI = (() => {
     }).join('');
   }
 
+  /* ── 지출 탭 렌더 ── */
+  function renderExpenses() {
+    const { fixed, logs } = State.getAll();
+    const monthLogs = Compute.thisMonthLogs(logs);
+
+    document.getElementById('exp-total-spent').textContent = Format.krw(Compute.totalSpent(monthLogs));
+    document.getElementById('exp-fixed-total').textContent = Format.krw(Compute.fixedTotal(fixed));
+    document.getElementById('exp-fixed-unpaid').textContent = Compute.unpaidFixedCount(fixed, logs) + '건';
+
+    const fixedListEl = document.getElementById('fixed-list');
+    if (!fixed.length) {
+      fixedListEl.innerHTML = emptyState('등록된 고정비가 없습니다', 'fixed');
+    } else {
+      const sorted = [...fixed].sort((a, b) => (Number(a.day) || 0) - (Number(b.day) || 0));
+      fixedListEl.innerHTML = sorted.map(f => {
+        const cat = Cat.info(f.category);
+        const paid = Compute.isPaidThisMonth(f.id, logs);
+        return `
+          <div class="fixed-card">
+            <div class="fx-day">${f.day}일</div>
+            <div class="fx-main">
+              <div class="fx-top">
+                <span class="cat-chip cat-${cat.cls}">${cat.label}</span>
+                ${paid ? '<span class="paid-chip">이번달 완료</span>' : ''}
+              </div>
+              <div class="fx-name">${esc(f.name)}</div>
+              <div class="fx-amount">${Format.krw(f.amount)}</div>
+            </div>
+            <div class="fx-actions">
+              <button class="btn-record" onclick="UI.openLogFromFixed('${f.id}')">기록</button>
+              <div class="fx-icon-row">
+                <button class="btn-icon sm" onclick="UI.openModal('fixed','${f.id}')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="btn-icon sm danger" onclick="App.deleteFixed('${f.id}')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    const logListEl = document.getElementById('log-list');
+    if (!logs.length) {
+      logListEl.innerHTML = emptyState('지출 기록이 없습니다', 'log');
+    } else {
+      const sorted = [...logs].sort((a, b) => b.ts - a.ts);
+      logListEl.innerHTML = sorted.map(l => {
+        const cat = Cat.info(l.category);
+        return `
+          <div class="log-row" onclick="UI.openModal('log','${l.id}')">
+            <div class="log-cat dot-${cat.cls}"></div>
+            <div class="log-info">
+              <div class="log-name">${esc(l.name) || cat.label}</div>
+              <div class="log-date">${l.date} · ${cat.label}</div>
+            </div>
+            <div class="log-amount">${Format.krw(l.amount)}</div>
+            <button class="btn-icon sm danger" onclick="event.stopPropagation(); App.deleteLog('${l.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>`;
+      }).join('');
+    }
+  }
+
   /* ── 전체 렌더 ── */
   function renderAll() {
     renderDashboard();
     renderStocks();
     renderSavings();
     renderLoans();
+    renderExpenses();
   }
 
   /* ── 모달 열기 ── */
-  function openModal(type, editId = null) {
+  function openModal(type, editId = null, prefill = null) {
     _modalType = type;
     _editId    = editId;
 
@@ -367,10 +501,12 @@ const UI = (() => {
 
     let ex = null;
     if (editId) {
-      const { stocks, savings, loans } = State.getAll();
+      const { stocks, savings, loans, fixed, logs } = State.getAll();
       if (type === 'stock')  ex = stocks.find(s => s.id === editId);
       if (type === 'saving') ex = savings.find(s => s.id === editId);
       if (type === 'loan')   ex = loans.find(l => l.id === editId);
+      if (type === 'fixed')  ex = fixed.find(f => f.id === editId);
+      if (type === 'log')    ex = logs.find(l => l.id === editId);
     }
 
     if (type === 'stock') {
@@ -464,6 +600,63 @@ const UI = (() => {
         <p class="form-hint">월 이자 = 원금 × 연이율 ÷ 12</p>`;
     }
 
+    else if (type === 'fixed') {
+      titleEl.textContent = editId ? '고정비 수정' : '고정비 추가';
+      bodyEl.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">항목명</label>
+          <input class="form-input" id="f-name" type="text" placeholder="예) 월세, 넷플릭스" value="${ex ? esc(ex.name) : ''}" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">결제일 (매월)</label>
+            <input class="form-input" id="f-day" type="number" inputmode="numeric" min="1" max="31" placeholder="25" value="${ex ? ex.day : ''}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">금액 (₩)</label>
+            <input class="form-input" id="f-amount" type="number" inputmode="numeric" placeholder="55000" value="${ex ? ex.amount : ''}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">카테고리</label>
+          <select class="form-select" id="f-category">
+            ${Cat.list.map(c => `<option value="${c.id}" ${ex && ex.category === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
+          </select>
+        </div>`;
+    }
+
+    else if (type === 'log') {
+      titleEl.textContent = editId ? '지출 수정' : '지출 기록';
+      const pf = prefill || {};
+      const amount   = ex ? ex.amount   : (pf.amount ?? '');
+      const category = ex ? ex.category : (pf.category || Cat.list[0].id);
+      const name     = ex ? ex.name     : (pf.name || '');
+      const date     = ex ? ex.date     : (pf.date || Format.todayDate());
+      const fixedId  = ex ? (ex.fixedId || '') : (pf.fixedId || '');
+      bodyEl.innerHTML = `
+        <input type="hidden" id="f-fixedid" value="${fixedId}" />
+        <div class="form-group">
+          <label class="form-label">금액 (₩)</label>
+          <input class="form-input" id="f-amount" type="number" inputmode="numeric" placeholder="12000" value="${amount}" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">카테고리</label>
+            <select class="form-select" id="f-category">
+              ${Cat.list.map(c => `<option value="${c.id}" ${category === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">날짜</label>
+            <input class="form-input" id="f-date" type="date" value="${date}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">메모 (선택)</label>
+          <input class="form-input" id="f-name" type="text" placeholder="예) 스타벅스" value="${esc(name)}" />
+        </div>`;
+    }
+
     document.getElementById('modal-overlay').classList.add('open');
     setTimeout(() => {
       const first = bodyEl.querySelector('input');
@@ -509,9 +702,44 @@ const UI = (() => {
       const item = { name, principal: Number(principal), rate: Number(rate) };
       editId ? State.updateLoan(editId, item) : State.addLoan(item);
     }
+    else if (type === 'fixed') {
+      const name   = document.getElementById('f-name').value.trim();
+      const day    = document.getElementById('f-day').value;
+      const amount = document.getElementById('f-amount').value;
+      const category = document.getElementById('f-category').value;
+      if (!name || !day || !amount) { alert('모든 항목을 입력해 주세요.'); return; }
+      const d = Number(day);
+      if (d < 1 || d > 31) { alert('결제일은 1~31 사이로 입력해 주세요.'); return; }
+      const item = { name, day: d, amount: Number(amount), category };
+      editId ? State.updateFixed(editId, item) : State.addFixed(item);
+    }
+    else if (type === 'log') {
+      const amount   = document.getElementById('f-amount').value;
+      const category = document.getElementById('f-category').value;
+      const date     = document.getElementById('f-date').value;
+      const name     = document.getElementById('f-name').value.trim();
+      const fixedId  = document.getElementById('f-fixedid').value || null;
+      if (!amount || !date) { alert('금액과 날짜를 입력해 주세요.'); return; }
+      const item = { amount: Number(amount), category, date, name, fixedId };
+      editId ? State.updateLog(editId, item) : State.addLog(item);
+    }
 
     closeModal();
     renderAll();
+  }
+
+  /* ── 고정비 카드에서 바로 지출 기록 ── */
+  function openLogFromFixed(fixedId) {
+    const { fixed } = State.getAll();
+    const f = fixed.find(x => x.id === fixedId);
+    if (!f) return;
+    openModal('log', null, {
+      amount: f.amount,
+      category: f.category,
+      name: f.name,
+      fixedId: f.id,
+      date: Format.todayDate()
+    });
   }
 
   /* ── 유틸 ── */
@@ -520,7 +748,7 @@ const UI = (() => {
   }
 
   function emptyState(msg, type) {
-    const typeMap = { stock: '주식 종목', saving: '예적금 계좌', loan: '대출' };
+    const typeMap = { stock: '주식 종목', saving: '예적금 계좌', loan: '대출', fixed: '고정비', log: '지출 기록' };
     return `
       <div class="empty-state">
         <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--border)" stroke-width="2"/><line x1="22" y1="32" x2="42" y2="32" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/><line x1="32" y1="22" x2="32" y2="42" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
@@ -529,7 +757,7 @@ const UI = (() => {
       </div>`;
   }
 
-  return { switchTab, openModalFromTab, renderAll, openModal, closeModal, saveModal };
+  return { switchTab, openModalFromTab, renderAll, openModal, closeModal, saveModal, openLogFromFixed };
 })();
 
 
@@ -549,6 +777,8 @@ const App = (() => {
   function deleteStock(id)  { if (confirm('삭제하시겠습니까?'))  { State.deleteStock(id);  UI.renderAll(); } }
   function deleteSaving(id) { if (confirm('삭제하시겠습니까?'))  { State.deleteSaving(id); UI.renderAll(); } }
   function deleteLoan(id)   { if (confirm('삭제하시겠습니까?'))  { State.deleteLoan(id);   UI.renderAll(); } }
+  function deleteFixed(id)  { if (confirm('삭제하시겠습니까?'))  { State.deleteFixed(id);  UI.renderAll(); } }
+  function deleteLog(id)    { if (confirm('삭제하시겠습니까?'))  { State.deleteLog(id);    UI.renderAll(); } }
 
   function resetAll() {
     if (confirm('모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
@@ -571,7 +801,7 @@ const App = (() => {
     UI.renderAll();
   }
 
-  return { init, updateCurPrice, deleteStock, deleteSaving, deleteLoan, resetAll };
+  return { init, updateCurPrice, deleteStock, deleteSaving, deleteLoan, deleteFixed, deleteLog, resetAll };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);
